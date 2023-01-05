@@ -1,6 +1,6 @@
 # Pinot Deep Dive
 
-The instructions below assume that you're using the https://github.com/teaxyz/cli[tea.xyz^] package manager.
+The instructions below assume that you're using the [tea.xyz](https://github.com/teaxyz/cli) package manager.
 
 ## Install dependencies
 
