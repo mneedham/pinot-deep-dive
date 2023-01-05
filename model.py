@@ -34,16 +34,11 @@ class EventAttendance:
 
     @staticmethod
     def generate(event:Event):
-        # event_duration = rand_event.end - rand_event.start
-        # join = rand_event.start + timedelta(seconds=random.randint(0, (event_duration - timedelta(seconds=60)).seconds))
-
-        # join = event.start + timedelta(seconds=random.randint(3, 5))
-
         earliest_join = max(event.start, datetime.now())
         time_left = event.end - earliest_join
 
         join = earliest_join + timedelta(seconds=random.randint(0, time_left.seconds))
-        leave = join + timedelta(seconds=random.randint(5, ((event.end-join) - timedelta(seconds=1)).seconds))
+        leave = min(join + timedelta(seconds=random.randint(5, ((event.end-join) - timedelta(seconds=1)).seconds)), event.end)
 
         return EventAttendance(event.id, join, leave)
 
