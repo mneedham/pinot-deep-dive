@@ -8,8 +8,8 @@ from datetime import datetime, timedelta
 from model import *
 
 fake = Faker()
-all_events = {}
-all_users = {}
+all_events:dict[str, Event] = {}
+all_users:dict[str, User] = {}
 
 with open('data/ips.json', 'r') as ips_file:
     ips = [json.loads(line) for line in ips_file.readlines()]
@@ -21,7 +21,7 @@ with open('data/event_names.json', 'r') as event_names_file:
 def emitJoins():
     joins = [user 
         for _, user in all_users.items()
-        if user.next_event.join  < datetime.now() and (not user.next_event.join_published)
+        if user.next_event.join < datetime.now() and (not user.next_event.join_published)
     ]
     for user in joins:
         user.next_event.join_published = True
@@ -38,9 +38,19 @@ def emitLeaves():
         print(json.dumps(user.leave_event()))
         user.next_event = EventAttendance.generate(get_random_event())
 
+def refreshEvents(min_event_length, max_event_length):
+    finished_events = [event for _, event in all_events.items() if event.end > datetime.now()]
+    for k in finished_events:
+        all_events.pop(k, None)
+        start = datetime.now()
+        event = Event.generate(start, min_event_length, max_event_length)
+        all_events[event.id] = event
+    
+
 def get_random_event():
-    event_ids = list(all_events.keys())
-    return all_events[event_ids[random.randint(0, len(event_ids)-1)]]
+    event_ids = [event_id for event_id,event in all_events.items() if event.end > (datetime.now() + timedelta(seconds=5))]
+    random_event_id = event_ids[random.randint(0, len(event_ids)-1)]
+    return all_events[random_event_id]
 
 @click.command()
 @click.option('--timeout', default=1, help='Run loop every <n> seconds')
@@ -52,7 +62,7 @@ def get_random_event():
 def run_loop(timeout, users, events, max_start_delay, min_event_length, max_event_length):
     """Generates an event stream for an online livestream"""
     for idx in range(0, events):
-        start = datetime.now() + timedelta(seconds=random.randint(0, max_start_delay))
+        start = datetime.now() + timedelta(seconds=random.uniform(0, max_start_delay))
         event = Event.generate(start, min_event_length, max_event_length)
         all_events[event.id] = event
 
@@ -72,6 +82,9 @@ def run_loop(timeout, users, events, max_start_delay, min_event_length, max_even
     l.start(timeout)
 
     l = task.LoopingCall(emitLeaves)
+    l.start(timeout)
+
+    l = task.LoopingCall(refreshEvents, min_event_length, max_event_length)
     l.start(timeout)
 
     reactor.run()

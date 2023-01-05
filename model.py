@@ -18,7 +18,7 @@ class Event:
         return Event(
             id=fake.uuid4(),
             start=start_time,
-            end=start_time + timedelta(seconds=random.randint(min_event_length, max_event_length))
+            end=start_time + timedelta(seconds=random.uniform(min_event_length, max_event_length))
         )
 
 class EventAttendance:
@@ -37,8 +37,8 @@ class EventAttendance:
         earliest_join = max(event.start, datetime.now())
         time_left = event.end - earliest_join
 
-        join = earliest_join + timedelta(seconds=random.randint(0, time_left.seconds))
-        leave = min(join + timedelta(seconds=random.randint(5, ((event.end-join) - timedelta(seconds=1)).seconds)), event.end)
+        join = min(earliest_join + timedelta(seconds=random.uniform(0, min(time_left.seconds, 5))), event.end)
+        leave = min(join + timedelta(seconds=random.uniform(5, ((event.end-join) - timedelta(seconds=1)).seconds)), event.end)
 
         return EventAttendance(event.id, join, leave)
 
@@ -60,7 +60,7 @@ class User:
 
     def leave_event(self):
         return {
-            "eventTime": datetime.now().isoformat(),
+            "eventTime": self.next_event.leave.isoformat(),
             "eventId": self.next_event.event_id, 
             "userId": self.id, 
             "name": self.name,
@@ -73,7 +73,7 @@ class User:
 
     def join_event(self):
         return  {
-            "eventTime": datetime.now().isoformat(),
+            "eventTime": self.next_event.join.isoformat(),
             "eventId": self.next_event.event_id, 
             "userId": self.id, 
             "name": self.name, 
