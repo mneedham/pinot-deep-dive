@@ -36,9 +36,13 @@ jq -cr --arg sep 😊 '[.eventId, tostring] | join($sep)' |
 kcat -P -b localhost:9092 -t events -K😊
 ```
 
+Query Kafka stream:
+
 ```bash
 kcat -C -b localhost:9092 -t events -f 'Key: %k, payload: %s\n'
 ```
+
+Add Pinot table:
 
 ```bash
 docker run \
@@ -49,6 +53,15 @@ docker run \
      -tableConfigFile /config/table.json \
      -controllerHost "pinot-controller-deep-dive" \
     -exec  
+```
+
+Navigate to http://localhost:9000:
+
+```sql
+select eventId, count(*) 
+from events 
+group by eventId 
+limit 10
 ```
 
 ## Actions
