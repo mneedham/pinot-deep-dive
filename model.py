@@ -1,12 +1,25 @@
 from datetime import datetime
 import random
 from datetime import timedelta
+from faker import Faker
+
+
+fake = Faker()
 
 class Event:
-    def __init__(self, id, start:datetime, end:datetime) -> None:
+    def __init__(self, id:str, start:datetime, end:datetime) -> None:
         self.id = id
         self.start = start
-        self.end = end        
+        self.end = end
+
+    @staticmethod
+    def generate(start_time:datetime, min_event_length:int, max_event_length:int):
+
+        return Event(
+            id=fake.uuid4(),
+            start=start_time,
+            end=start_time + timedelta(seconds=random.randint(min_event_length, max_event_length))
+        )
 
 class EventAttendance:
     def __init__(self, event_id, join:datetime, leave:datetime, join_published:bool=False, leave_published:bool=False) -> None:
@@ -19,14 +32,20 @@ class EventAttendance:
     def __str__(self):
         return f"event_id={self.event_id}, join={self.join}, leave={self.leave}"
 
-    @staticmethod   
-    def generate(rand_event:Event):
+    @staticmethod
+    def generate(event:Event):
         # event_duration = rand_event.end - rand_event.start
         # join = rand_event.start + timedelta(seconds=random.randint(0, (event_duration - timedelta(seconds=60)).seconds))
-        join = rand_event.start + timedelta(seconds=random.randint(0, 10))
-        leave = join + timedelta(seconds=random.randint(5, (rand_event.end - join).seconds))
 
-        return EventAttendance(rand_event.id, join, leave)
+        # join = event.start + timedelta(seconds=random.randint(3, 5))
+
+        earliest_join = max(event.start, datetime.now())
+        time_left = event.end - earliest_join
+
+        join = earliest_join + timedelta(seconds=random.randint(0, time_left.seconds))
+        leave = join + timedelta(seconds=random.randint(5, ((event.end-join) - timedelta(seconds=1)).seconds))
+
+        return EventAttendance(event.id, join, leave)
 
 class Location:
     def __init__(self, ip:str, latLng:str, city:str, region:str) -> None:

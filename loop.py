@@ -1,12 +1,10 @@
 import click
-from twisted.internet import task, reactor
 import datetime
-from faker import Faker
 import json
-import random
 
+from twisted.internet import task, reactor
+from faker import Faker
 from datetime import datetime, timedelta
-
 from model import *
 
 fake = Faker()
@@ -54,14 +52,9 @@ def get_random_event():
 def run_loop(timeout, users, events, max_start_delay, min_event_length, max_event_length):
     """Generates an event stream for an online livestream"""
     for idx in range(0, events):
-        name = fake.name()
-        uuid = fake.uuid4()
         start = datetime.now() + timedelta(seconds=random.randint(0, max_start_delay))
-        all_events[uuid] = Event(
-            id=uuid, 
-            start=start,
-            end = start + timedelta(seconds=random.randint(min_event_length, max_event_length))
-        )
+        event = Event.generate(start, min_event_length, max_event_length)
+        all_events[event.id] = event
 
     for i in range(0, users):
         name = fake.name()
