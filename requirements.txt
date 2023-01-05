@@ -1,2 +1,5 @@
 requests
 Faker
+python-dotenv
+Twisted
+click

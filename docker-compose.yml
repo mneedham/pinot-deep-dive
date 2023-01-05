@@ -1,0 +1,46 @@
+version: "3"
+services:
+  zookeeper:
+    image: zookeeper:3.8.0
+    hostname: zookeeper
+    container_name: zookeeper-deep-dive
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks: 
+      - deep-dive
+  kafka:
+    image: wurstmeister/kafka:latest
+    restart: unless-stopped
+    container_name: "kafka-deep-dive"
+    ports:
+      - "9092:9092"
+    expose:
+      - "9093"
+    depends_on:
+     - zookeeper
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper-deep-dive:2181/kafka
+      KAFKA_BROKER_ID: 0
+      KAFKA_ADVERTISED_HOST_NAME: kafka-deep-dive
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-deep-dive:9093,OUTSIDE://localhost:9092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9093,OUTSIDE://0.0.0.0:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,OUTSIDE:PLAINTEXT
+    networks: 
+      - deep-dive
+  pinot-controller:
+    image: apachepinot/pinot:0.11.0-arm64
+    command: "QuickStart -type EMPTY"
+    container_name: "pinot-controller-deep-dive"
+    volumes:
+      - ./config:/config
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+    networks: 
+      - deep-dive
+networks:
+  deep-dive:
+    name: deep-dive
