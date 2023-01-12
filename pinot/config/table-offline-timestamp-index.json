@@ -1,0 +1,47 @@
+{
+    "tableName":"events",
+    "tableType":"OFFLINE",
+    "segmentsConfig":{
+      "timeColumnName":"ts",
+      "schemaName":"events",
+      "replication":"1",
+      "replicasPerPartition":"1"
+    },
+    "tableIndexConfig":{
+      "loadMode":"MMAP"
+    },
+    "fieldConfigList": [
+        {
+          "name": "ts",
+          "encodingType": "DICTIONARY",
+          "indexTypes": ["TIMESTAMP"],
+          "timestampConfig": {
+            "granularities": [
+              "MINUTE", "SECOND"
+            ]
+          }
+        }
+      ],
+    "ingestionConfig":{
+      "batchIngestionConfig": {
+        "segmentIngestionType": "APPEND",
+        "segmentIngestionFrequency": "HOURLY"
+      },
+      "transformConfigs": [
+        {
+            "columnName": "ts",
+            "transformFunction": "FromDateTime(eventTime, 'YYYY-MM-dd''T''HH:mm:ss.SSSSSS')"
+        },
+        {
+            "columnName": "location",
+            "transformFunction": "toSphericalGeography(stPoint(lng,lat))"
+        }
+      ]
+    },
+    "tenants":{
+      
+    },
+    "metadata":{
+      
+    }
+  }

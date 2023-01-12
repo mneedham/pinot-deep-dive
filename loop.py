@@ -6,6 +6,7 @@ from twisted.internet import task, reactor
 from faker import Faker
 from datetime import datetime, timedelta
 from model import *
+import time
 
 fake = Faker()
 all_events:dict[str, Event] = {}
@@ -25,7 +26,7 @@ def emitJoins():
     ]
     for user in joins:
         user.next_event.join_published = True
-        print(json.dumps(user.join_event()))
+        print(json.dumps(user.join_event()), flush=True)
 
 
 def emitLeaves():
@@ -35,13 +36,17 @@ def emitLeaves():
     ]
     for user in leaves:
         user.next_event.leave_published = True
-        print(json.dumps(user.leave_event()))
+        print(json.dumps(user.leave_event()), flush=True)
         user.next_event = EventAttendance.generate(get_random_event())
 
 def refreshEvents(min_event_length, max_event_length):
-    finished_events = [event for _, event in all_events.items() if event.end > datetime.now()]
+    finished_events = [event_id for event_id, event in all_events.items() if event.end > (datetime.now() + timedelta(seconds=5))]
     for k in finished_events:
         all_events.pop(k, None)
+    
+    number_of_finished_events = len(finished_events)
+    
+    for i in range(0, number_of_finished_events + 10):
         start = datetime.now()
         event = Event.generate(start, min_event_length, max_event_length)
         all_events[event.id] = event
@@ -49,11 +54,30 @@ def refreshEvents(min_event_length, max_event_length):
 
 def get_random_event():
     event_ids = [event_id for event_id,event in all_events.items() if event.end > (datetime.now() + timedelta(seconds=5))]
+
+    if len(event_ids) == 0:
+        print(all_events)
+
     random_event_id = event_ids[random.randint(0, len(event_ids)-1)]
     return all_events[random_event_id]
 
+def cbLoopDone(result):
+    """
+    Called when loop was stopped with success.
+    """
+    print("Loop done.")
+    reactor.stop()
+
+
+def ebLoopFailed(failure):
+    """
+    Called when loop execution failed.
+    """
+    print(failure.getBriefTraceback())
+    reactor.stop()
+
 @click.command()
-@click.option('--timeout', default=1, help='Run loop every <n> seconds')
+@click.option('--timeout', default=1.0, help='Run loop every <n> seconds')
 @click.option('--users', default=10, help='Number of users')
 @click.option('--events', default=10, help='Number of events')
 @click.option('--max-start-delay', default=60, help='The maximum delay of the start time of events (in seconds)')
@@ -79,13 +103,18 @@ def run_loop(timeout, users, events, max_start_delay, min_event_length, max_even
         )
 
     l = task.LoopingCall(emitJoins)
-    l.start(timeout)
+    loopDeferred = l.start(timeout)
+    loopDeferred.addCallback(cbLoopDone)
+    loopDeferred.addErrback(ebLoopFailed)
 
     l = task.LoopingCall(emitLeaves)
-    l.start(timeout)
-
+    loopDeferred = l.start(timeout)
+    loopDeferred.addCallback(cbLoopDone)
+    loopDeferred.addErrback(ebLoopFailed)
     l = task.LoopingCall(refreshEvents, min_event_length, max_event_length)
-    l.start(timeout)
+    loopDeferred = l.start(timeout)
+    loopDeferred.addCallback(cbLoopDone)
+    loopDeferred.addErrback(ebLoopFailed)
 
     reactor.run()
 

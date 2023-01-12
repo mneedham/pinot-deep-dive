@@ -21,6 +21,12 @@ class Event:
             end=start_time + timedelta(seconds=random.uniform(min_event_length, max_event_length))
         )
 
+    def __str__(self):
+        return f"Event(id={self.id}, start={self.start}, end={self.end})"
+
+    def __repr__(self):
+        return self.__str__()
+
 class EventAttendance:
     def __init__(self, event_id, join:datetime, leave:datetime, join_published:bool=False, leave_published:bool=False) -> None:
         self.event_id = event_id
@@ -86,5 +92,7 @@ class User:
 
 
     def __str__(self):
-        return f"id={self.id}, name= {self.name}, next_event={self.next_event}"
+        return f"User(id={self.id}, name= {self.name}, next_event={self.next_event})"
 
+    def __repr__(self):
+        return self.__str__()

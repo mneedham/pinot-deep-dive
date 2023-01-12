@@ -31,15 +31,52 @@ services:
     networks: 
       - deep-dive
   pinot-controller:
-    image: apachepinot/pinot:0.11.0-arm64
-    command: "QuickStart -type EMPTY"
+    image: apachepinot/pinot:0.11.0-SNAPSHOT-a6f5e89-20230110-arm64
+    command: "StartController -zkAddress zookeeper-deep-dive:2181 -dataDir /deep-store"
     container_name: "pinot-controller-deep-dive"
-    volumes:
-      - ./config:/config
     restart: unless-stopped
+    volumes:
+      - ./deep-store:/deep-store  
+      - ./batch-data:/batch-data
     ports:
       - "9000:9000"
-    networks: 
+    depends_on:
+      - zookeeper
+    networks:
+      - deep-dive
+  pinot-broker:
+    image: apachepinot/pinot:0.11.0-SNAPSHOT-a6f5e89-20230110-arm64
+    command: "StartBroker -zkAddress zookeeper-deep-dive:2181"
+    restart: unless-stopped
+    container_name: "pinot-broker-deep-dive"
+    environment:
+      JAVA_OPTS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
+    ports:
+      - "8099:8099"
+      - "5005:5005"
+    depends_on:
+      - pinot-controller
+    networks:
+      - deep-dive
+  pinot-server:
+    image: apachepinot/pinot:0.11.0-SNAPSHOT-a6f5e89-20230110-arm64
+    container_name: "pinot-server-deep-dive"
+    command: "StartServer -zkAddress zookeeper-deep-dive:2181"
+    restart: unless-stopped
+    depends_on:
+      - pinot-broker
+    networks:
+      - deep-dive
+  pinot-minion:
+    image: apachepinot/pinot:0.11.0-SNAPSHOT-a6f5e89-20230110-arm64
+    container_name: "pinot-minion-deep-dive"
+    command: "StartMinion -zkAddress zookeeper-deep-dive:2181"
+    restart: unless-stopped
+    volumes:  
+      - ./batch-data:/batch-data
+    depends_on:
+      - pinot-broker
+    networks:
       - deep-dive
 networks:
   deep-dive:
